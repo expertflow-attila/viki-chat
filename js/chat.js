@@ -309,10 +309,34 @@ async function sendMessage() {
   showTyping();
 
   try {
+    // Build memory from all previous conversations
+    const previousConvs = conversations.filter((c) => c.id !== currentConvId);
+    let memory = "";
+    if (previousConvs.length > 0) {
+      memory = "KORÁBBI BESZÉLGETÉSEK ÖSSZEFOGLALÓJA:\n\n";
+      // Include all conversations, newest first
+      previousConvs.forEach((conv) => {
+        const date = new Date(conv.date).toLocaleDateString("hu-HU", {
+          year: "numeric", month: "long", day: "numeric",
+          hour: "2-digit", minute: "2-digit",
+        });
+        memory += `--- ${date} ---\n`;
+        conv.messages.forEach((msg) => {
+          const role = msg.role === "user" ? "Felhasználó" : "Anna";
+          memory += `${role}: ${msg.content}\n`;
+        });
+        memory += "\n";
+      });
+    }
+
+    const messagesWithMemory = memory
+      ? [{ role: "user", content: memory }, { role: "assistant", content: "Köszönöm, emlékszem a korábbi beszélgetéseinkre." }, ...currentMessages]
+      : currentMessages;
+
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: currentMessages }),
+      body: JSON.stringify({ messages: messagesWithMemory }),
     });
 
     hideTyping();
