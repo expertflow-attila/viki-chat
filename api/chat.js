@@ -306,7 +306,7 @@ export default async function handler(req, res) {
     res.setHeader("Connection", "keep-alive");
 
     const stream = await client.messages.stream({
-      model: "claude-sonnet-4-6-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 4096,
       system: SYSTEM_PROMPT,
       messages: messages.map((m) => ({
