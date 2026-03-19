@@ -3,8 +3,18 @@ const textarea = document.getElementById("input");
 const sendBtn = document.getElementById("send-btn");
 const welcomeEl = document.getElementById("welcome");
 
-let messages = [];
+const STORAGE_KEY = "viki-chat-history";
+
+// Load saved messages
+let messages = loadMessages();
 let isStreaming = false;
+
+// Restore previous conversation on load
+if (messages.length > 0) {
+  if (welcomeEl) welcomeEl.style.display = "none";
+  messages.forEach((msg) => addMessage(msg.role, msg.content, false));
+  scrollToBottom();
+}
 
 // Auto-resize textarea
 textarea.addEventListener("input", () => {
@@ -35,6 +45,23 @@ document.querySelectorAll(".welcome__suggestion").forEach((btn) => {
 
 function scrollToBottom() {
   messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
+}
+
+function loadMessages() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveMessages() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  } catch {
+    // storage full or unavailable
+  }
 }
 
 function renderMarkdown(text) {
@@ -68,11 +95,12 @@ function renderMarkdown(text) {
     .replace(/(<\/ul>)<\/p>/g, "$1");
 }
 
-function addMessage(role, content) {
+function addMessage(role, content, animate = true) {
   if (welcomeEl) welcomeEl.style.display = "none";
 
   const div = document.createElement("div");
   div.className = `message message--${role}`;
+  if (!animate) div.style.animation = "none";
 
   const avatar = document.createElement("div");
   avatar.className = "message__avatar";
@@ -85,7 +113,7 @@ function addMessage(role, content) {
   div.appendChild(avatar);
   div.appendChild(bubble);
   messagesEl.appendChild(div);
-  scrollToBottom();
+  if (animate) scrollToBottom();
 
   return bubble;
 }
@@ -126,6 +154,7 @@ async function sendMessage() {
 
   // Add user message
   messages.push({ role: "user", content });
+  saveMessages();
   addMessage("user", content);
 
   // Show typing
@@ -179,6 +208,7 @@ async function sendMessage() {
     }
 
     messages.push({ role: "assistant", content: fullText });
+    saveMessages();
   } catch (error) {
     hideTyping();
     addMessage(
