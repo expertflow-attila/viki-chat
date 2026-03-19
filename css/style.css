@@ -458,6 +458,14 @@ body {
   gap: 1rem;
 }
 
+.welcome__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  object-fit: cover;
+}
+
 .welcome__icon {
   width: 56px;
   height: 56px;
