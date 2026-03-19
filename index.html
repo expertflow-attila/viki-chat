@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anna — Victory Sport Academy Asszisztens</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300;1,9..40,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-icon">A</div>
+      <div class="header-info">
+        <div class="header-title">Anna</div>
+        <div class="header-status">
+          <span class="status-dot"></span>
+          Online — Victory Sport Academy
+        </div>
+      </div>
+    </header>
+
+    <!-- Messages -->
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <div class="welcome__icon">A</div>
+        <div class="welcome__title">Szia! Anna vagyok.</div>
+        <div class="welcome__subtitle">
+          Attila személyi asszisztense. Segítek a Victory Sport Academy projektjében — bármit kérdezz a weboldallal, szolgáltatásokkal, vagy technikai dolgokkal kapcsolatban.
+        </div>
+        <div class="welcome__suggestions">
+          <button class="welcome__suggestion">Hogyan állítsam be a DNS-t?</button>
+          <button class="welcome__suggestion">Segíts a bemutatkozás szövegében</button>
+          <button class="welcome__suggestion">Milyen árak kerüljenek az oldalra?</button>
+          <button class="welcome__suggestion">Mi van még hátra a weboldalon?</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-area">
+      <div class="input-wrapper">
+        <textarea
+          id="input"
+          rows="1"
+          placeholder="Írj üzenetet..."
+          autocomplete="off"
+        ></textarea>
+        <button id="send-btn" class="send-btn" disabled>
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="input-hint">Anna az Attila által készített AI asszisztens. Technikai kérdésekben Attila elérhető: hello@expertflow.hu</div>
+    </div>
+  </div>
+
+  <script src="/js/chat.js"></script>
+</body>
+</html>
