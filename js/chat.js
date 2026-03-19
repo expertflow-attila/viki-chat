@@ -252,9 +252,17 @@ function addMessage(role, content, animate = true) {
   div.className = `message message--${role}`;
   if (!animate) div.style.animation = "none";
 
-  const avatar = document.createElement("div");
-  avatar.className = "message__avatar";
-  avatar.textContent = role === "user" ? "Te" : "A";
+  let avatar;
+  if (role === "assistant") {
+    avatar = document.createElement("img");
+    avatar.className = "message__avatar";
+    avatar.src = "/images/anna.png";
+    avatar.alt = "Anna";
+  } else {
+    avatar = document.createElement("div");
+    avatar.className = "message__avatar";
+    avatar.textContent = "Te";
+  }
 
   const bubble = document.createElement("div");
   bubble.className = "message__bubble";
@@ -273,9 +281,10 @@ function showTyping() {
   div.className = "typing";
   div.id = "typing-indicator";
 
-  const avatar = document.createElement("div");
+  const avatar = document.createElement("img");
   avatar.className = "message__avatar";
-  avatar.textContent = "A";
+  avatar.src = "/images/anna.png";
+  avatar.alt = "Anna";
 
   const dots = document.createElement("div");
   dots.className = "typing__dots";
