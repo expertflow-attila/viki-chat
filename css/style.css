@@ -100,10 +100,7 @@ body {
 }
 
 .status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #4ADE80;
+  display: none;
 }
 
 /* ── Messages Area ── */
