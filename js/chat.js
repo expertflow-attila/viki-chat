@@ -2,28 +2,48 @@ const messagesEl = document.getElementById("messages");
 const textarea = document.getElementById("input");
 const sendBtn = document.getElementById("send-btn");
 const welcomeEl = document.getElementById("welcome");
+const sidebar = document.getElementById("sidebar");
+const sidebarOverlay = document.getElementById("sidebar-overlay");
+const menuBtn = document.getElementById("menu-btn");
+const newChatBtn = document.getElementById("new-chat-btn");
+const convListEl = document.getElementById("conversation-list");
 
-const STORAGE_KEY = "viki-chat-history";
+const STORAGE_KEY = "viki-chat-conversations";
 
-// Load saved messages
-let messages = loadMessages();
+let conversations = loadConversations();
+let currentConvId = null;
+let currentMessages = [];
 let isStreaming = false;
 
-// Restore previous conversation on load
-if (messages.length > 0) {
-  if (welcomeEl) welcomeEl.style.display = "none";
-  messages.forEach((msg) => addMessage(msg.role, msg.content, false));
-  scrollToBottom();
-}
+// Start with a fresh conversation
+startNewConversation();
+renderSidebar();
 
-// Auto-resize textarea
+// ── Sidebar toggle (mobile) ──
+menuBtn.addEventListener("click", () => {
+  sidebar.classList.toggle("open");
+  sidebarOverlay.classList.toggle("active");
+});
+
+sidebarOverlay.addEventListener("click", () => {
+  sidebar.classList.remove("open");
+  sidebarOverlay.classList.remove("active");
+});
+
+// ── New chat ──
+newChatBtn.addEventListener("click", () => {
+  startNewConversation();
+  sidebar.classList.remove("open");
+  sidebarOverlay.classList.remove("active");
+});
+
+// ── Input ──
 textarea.addEventListener("input", () => {
   textarea.style.height = "auto";
   textarea.style.height = Math.min(textarea.scrollHeight, 120) + "px";
   sendBtn.disabled = !textarea.value.trim() || isStreaming;
 });
 
-// Send on Enter (Shift+Enter for new line)
 textarea.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
@@ -35,7 +55,7 @@ sendBtn.addEventListener("click", () => {
   if (textarea.value.trim() && !isStreaming) sendMessage();
 });
 
-// Suggestion buttons
+// ── Suggestion buttons ──
 document.querySelectorAll(".welcome__suggestion").forEach((btn) => {
   btn.addEventListener("click", () => {
     textarea.value = btn.textContent;
@@ -43,11 +63,8 @@ document.querySelectorAll(".welcome__suggestion").forEach((btn) => {
   });
 });
 
-function scrollToBottom() {
-  messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
-}
-
-function loadMessages() {
+// ── Storage ──
+function loadConversations() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved) : [];
@@ -56,38 +73,171 @@ function loadMessages() {
   }
 }
 
-function saveMessages() {
+function saveConversations() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
   } catch {
-    // storage full or unavailable
+    // storage full
   }
+}
+
+// ── Conversations ──
+function startNewConversation() {
+  currentConvId = Date.now().toString();
+  currentMessages = [];
+
+  // Clear messages area
+  messagesEl.innerHTML = "";
+  if (welcomeEl) {
+    messagesEl.appendChild(welcomeEl);
+    welcomeEl.style.display = "";
+  }
+
+  // Deactivate sidebar items
+  document.querySelectorAll(".conv-item--active").forEach((el) => {
+    el.classList.remove("conv-item--active");
+  });
+}
+
+function loadConversation(convId) {
+  const conv = conversations.find((c) => c.id === convId);
+  if (!conv) return;
+
+  currentConvId = conv.id;
+  currentMessages = [...conv.messages];
+
+  // Clear and render messages
+  messagesEl.innerHTML = "";
+  if (welcomeEl) welcomeEl.style.display = "none";
+
+  currentMessages.forEach((msg) => addMessage(msg.role, msg.content, false));
+  scrollToBottom();
+  renderSidebar();
+
+  // Close sidebar on mobile
+  sidebar.classList.remove("open");
+  sidebarOverlay.classList.remove("active");
+}
+
+function deleteConversation(convId, e) {
+  e.stopPropagation();
+  conversations = conversations.filter((c) => c.id !== convId);
+  saveConversations();
+
+  if (currentConvId === convId) {
+    startNewConversation();
+  }
+
+  renderSidebar();
+}
+
+function saveCurrentConversation() {
+  if (currentMessages.length === 0) return;
+
+  const existing = conversations.findIndex((c) => c.id === currentConvId);
+  const title =
+    currentMessages[0]?.content.slice(0, 50) +
+    (currentMessages[0]?.content.length > 50 ? "..." : "");
+
+  const conv = {
+    id: currentConvId,
+    title,
+    date: new Date().toISOString(),
+    messages: [...currentMessages],
+  };
+
+  if (existing >= 0) {
+    conversations[existing] = conv;
+  } else {
+    conversations.unshift(conv);
+  }
+
+  saveConversations();
+  renderSidebar();
+}
+
+// ── Sidebar rendering ──
+function renderSidebar() {
+  convListEl.innerHTML = "";
+
+  if (conversations.length === 0) {
+    convListEl.innerHTML =
+      '<div style="padding: 1rem; text-align: center; color: var(--text-dim); font-size: 0.75rem;">Még nincsenek korábbi beszélgetések</div>';
+    return;
+  }
+
+  // Group by date
+  const groups = {};
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+
+  conversations.forEach((conv) => {
+    const d = new Date(conv.date).toDateString();
+    let label;
+    if (d === today) label = "Ma";
+    else if (d === yesterday) label = "Tegnap";
+    else label = new Date(conv.date).toLocaleDateString("hu-HU", { month: "long", day: "numeric" });
+
+    if (!groups[label]) groups[label] = [];
+    groups[label].push(conv);
+  });
+
+  Object.entries(groups).forEach(([label, convs]) => {
+    const groupLabel = document.createElement("div");
+    groupLabel.className = "sidebar__group-label";
+    groupLabel.textContent = label;
+    convListEl.appendChild(groupLabel);
+
+    convs.forEach((conv) => {
+      const item = document.createElement("div");
+      item.className = "conv-item" + (conv.id === currentConvId ? " conv-item--active" : "");
+      item.onclick = () => loadConversation(conv.id);
+
+      item.innerHTML = `
+        <div class="conv-item__text">
+          <div class="conv-item__title">${escapeHtml(conv.title)}</div>
+          <div class="conv-item__date">${new Date(conv.date).toLocaleTimeString("hu-HU", { hour: "2-digit", minute: "2-digit" })}</div>
+        </div>
+        <button class="conv-item__delete" title="Törlés">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        </button>
+      `;
+
+      item.querySelector(".conv-item__delete").onclick = (e) =>
+        deleteConversation(conv.id, e);
+
+      convListEl.appendChild(item);
+    });
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ── Messages ──
+function scrollToBottom() {
+  messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
 }
 
 function renderMarkdown(text) {
   return text
-    // Bold
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    // Italic
     .replace(/\*(.*?)\*/g, "<em>$1</em>")
-    // Inline code
     .replace(/`([^`]+)`/g, "<code>$1</code>")
-    // Headers
     .replace(/^### (.*$)/gm, "<h4>$1</h4>")
     .replace(/^## (.*$)/gm, "<h3>$1</h3>")
-    // Unordered lists
     .replace(/^- (.*$)/gm, "<li>$1</li>")
     .replace(/(<li>.*<\/li>\n?)+/g, "<ul>$&</ul>")
-    // Links
     .replace(
       /\[([^\]]+)\]\(([^)]+)\)/g,
       '<a href="$2" target="_blank" rel="noopener">$1</a>'
     )
-    // Paragraphs
     .replace(/\n\n/g, "</p><p>")
     .replace(/\n/g, "<br>")
     .replace(/^(.+)$/s, "<p>$1</p>")
-    // Clean empty paragraphs
     .replace(/<p><\/p>/g, "")
     .replace(/<p>(<h[34]>)/g, "$1")
     .replace(/(<\/h[34]>)<\/p>/g, "$1")
@@ -152,26 +302,23 @@ async function sendMessage() {
   textarea.value = "";
   textarea.style.height = "auto";
 
-  // Add user message
-  messages.push({ role: "user", content });
-  saveMessages();
+  currentMessages.push({ role: "user", content });
+  saveCurrentConversation();
   addMessage("user", content);
 
-  // Show typing
   showTyping();
 
   try {
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages: currentMessages }),
     });
 
     hideTyping();
 
     if (!response.ok) throw new Error("API error");
 
-    // Create assistant bubble
     let fullText = "";
     const bubble = addMessage("assistant", "");
 
@@ -207,13 +354,13 @@ async function sendMessage() {
       }
     }
 
-    messages.push({ role: "assistant", content: fullText });
-    saveMessages();
+    currentMessages.push({ role: "assistant", content: fullText });
+    saveCurrentConversation();
   } catch (error) {
     hideTyping();
     addMessage(
       "assistant",
-      "Elnezest, hiba tortent. Probald ujra, vagy irj Attilanak: hello@expertflow.hu"
+      "Elnézést, hiba történt. Próbáld újra, vagy írj Attilának: hello@expertflow.hu"
     );
   }
 
